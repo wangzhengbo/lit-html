@@ -147,6 +147,11 @@ export type TemplateResult = {
   values: unknown[];
 };
 
+export type CompiledTemplateResult = {
+  _$litType$: Template;
+  values: unknown[];
+};
+
 /**
  * Generates a template literal tag function that returns a TemplateResult with
  * the given result type.
@@ -307,14 +312,15 @@ export abstract class Directive {
     return this.render(...props);
   }
 }
+export type LitTemplate = Template;
 
 class Template {
-  private __strings: TemplateStringsArray;
-  __element: HTMLTemplateElement;
-  __parts: Array<TemplatePart> = [];
+  _strings: TemplateStringsArray;
+  _element: HTMLTemplateElement;
+  _parts: Array<TemplatePart> = [];
 
   constructor({strings, _$litType$: type}: TemplateResult) {
-    walker.currentNode = (this.__element = d.createElement('template')).content;
+    walker.currentNode = (this._element = d.createElement('template')).content;
 
     // Insert makers into the template HTML to represent the position of
     // bindings. The following code scans the template strings to determine the
@@ -322,7 +328,7 @@ class Template {
     // we insert an HTML comment, attribute value position, where we insert a
     // sentinel string and re-write the attribute name, or inside a tag where
     // we insert the sentinel string.
-    const l = (this.__strings = strings).length - 1;
+    const l = (this._strings = strings).length - 1;
     const attrNames: Array<string> = [];
     let html = type === SVG_RESULT ? '<svg>' : '';
     let node: Node | null;
@@ -414,10 +420,12 @@ class Template {
 
     // Note, we don't add '</svg>' for SVG result types because the parser
     // will close the <svg> tag for us.
-    this.__element.innerHTML = html + this.__strings[l];
+    this._element.innerHTML = html + this._strings[l];
+
+    // console.log(html + this.__strings[l]);
 
     if (type === SVG_RESULT) {
-      const content = this.__element.content;
+      const content = this._element.content;
       const svgElement = content.firstChild!;
       svgElement.remove();
       content.append(...svgElement.childNodes);
@@ -438,12 +446,12 @@ class Template {
               (node as Element).removeAttribute(name);
               const statics = value.split(marker);
               const m = /([.?@])?(.*)/.exec(attrNames[attrNameIndex++])!;
-              this.__parts.push({
-                __type: ATTRIBUTE_PART,
-                __index: nodeIndex,
-                __name: m[2],
-                __strings: statics,
-                __constructor:
+              this._parts.push({
+                _type: ATTRIBUTE_PART,
+                _index: nodeIndex,
+                _name: m[2],
+                _strings: statics,
+                _constructor:
                   m[1] === '.'
                     ? PropertyPart
                     : m[1] === '?'
@@ -456,9 +464,9 @@ class Template {
             } else if (name === marker) {
               (node as Element).removeAttribute(name);
               i--;
-              this.__parts.push({
-                __type: ELEMENT_PART,
-                __index: nodeIndex,
+              this._parts.push({
+                _type: ELEMENT_PART,
+                _index: nodeIndex,
               });
             }
           }
@@ -479,7 +487,7 @@ class Template {
             // normalized in some browsers (TODO: check)
             for (let i = 0; i < lastIndex; i++) {
               (node as Element).append(strings[i] || createMarker());
-              this.__parts.push({__type: NODE_PART, __index: ++nodeIndex});
+              this._parts.push({_type: NODE_PART, _index: ++nodeIndex});
               bindingIndex++;
             }
             (node as Element).append(strings[lastIndex] || createMarker());
@@ -489,7 +497,7 @@ class Template {
         const data = (node as Comment).data;
         if (data === markerMatch) {
           bindingIndex++;
-          this.__parts.push({__type: NODE_PART, __index: nodeIndex});
+          this._parts.push({_type: NODE_PART, _index: nodeIndex});
         } else {
           let i = -1;
           while ((i = (node as Comment).data.indexOf(marker, i + 1)) !== -1) {
@@ -497,7 +505,7 @@ class Template {
             // The binding won't work, but subsequent bindings will
             // TODO (justinfagnani): consider whether it's even worth it to
             // make bindings in comments work
-            this.__parts.push({__type: COMMENT_PART, __index: nodeIndex});
+            this._parts.push({_type: COMMENT_PART, _index: nodeIndex});
             bindingIndex++;
             // Move to the end of the match
             i += marker.length - 1;
@@ -506,6 +514,7 @@ class Template {
       }
       nodeIndex++;
     }
+    // console.log('Template', this);
   }
 }
 
@@ -525,8 +534,8 @@ class TemplateInstance {
   // DocumentFragment and we don't want to hold onto it with an instance field.
   __clone(options: RenderOptions | undefined) {
     const {
-      __element: {content},
-      __parts: parts,
+      _element: {content},
+      _parts: parts,
     } = this.__template;
     const fragment = d.importNode(content, true);
     walker.currentNode = fragment;
@@ -537,22 +546,22 @@ class TemplateInstance {
     let templatePart = parts[0];
 
     while (templatePart !== undefined && node !== null) {
-      if (nodeIndex === templatePart.__index) {
+      if (nodeIndex === templatePart._index) {
         let part: Part | undefined;
-        if (templatePart.__type === NODE_PART) {
+        if (templatePart._type === NODE_PART) {
           part = new NodePart(node as HTMLElement, node.nextSibling, options);
-        } else if (templatePart.__type === ATTRIBUTE_PART) {
-          part = new templatePart.__constructor(
+        } else if (templatePart._type === ATTRIBUTE_PART) {
+          part = new templatePart._constructor(
             node as HTMLElement,
-            templatePart.__name,
-            templatePart.__strings,
+            templatePart._name,
+            templatePart._strings,
             options
           );
         }
         this.__parts.push(part);
         templatePart = parts[++partIndex];
       }
-      if (templatePart !== undefined && nodeIndex !== templatePart.__index) {
+      if (templatePart !== undefined && nodeIndex !== templatePart._index) {
         node = walker.nextNode();
         nodeIndex++;
       }
@@ -581,23 +590,23 @@ class TemplateInstance {
  * Parts
  */
 type AttributeTemplatePart = {
-  readonly __type: typeof ATTRIBUTE_PART;
-  readonly __index: number;
-  readonly __name: string;
-  readonly __constructor: typeof AttributePart;
-  readonly __strings: ReadonlyArray<string>;
+  readonly _type: typeof ATTRIBUTE_PART;
+  readonly _index: number;
+  readonly _name: string;
+  readonly _constructor: typeof AttributePart;
+  readonly _strings: ReadonlyArray<string>;
 };
 type NodeTemplatePart = {
-  readonly __type: typeof NODE_PART;
-  readonly __index: number;
+  readonly _type: typeof NODE_PART;
+  readonly _index: number;
 };
 type ElementTemplatePart = {
-  readonly __type: typeof ELEMENT_PART;
-  readonly __index: number;
+  readonly _type: typeof ELEMENT_PART;
+  readonly _index: number;
 };
 type CommentTemplatePart = {
-  readonly __type: typeof COMMENT_PART;
-  readonly __index: number;
+  readonly _type: typeof COMMENT_PART;
+  readonly _index: number;
 };
 
 /**
@@ -698,11 +707,17 @@ export class NodePart {
     this._value = value;
   }
 
-  private __commitTemplateResult(result: TemplateResult): void {
-    const {strings, values} = result;
-    let template = templateCache.get(strings);
-    if (template === undefined) {
-      templateCache.set(strings, (template = new Template(result)));
+  private __commitTemplateResult(result: TemplateResult|CompiledTemplateResult): void {
+    const {values} = result;
+    let template: Template|undefined;
+    if (typeof result._$litType$ === 'number') {
+      const {strings} = result as TemplateResult;
+      template = templateCache.get(strings);
+      if (template === undefined) {
+        templateCache.set(strings, (template = new Template(result as TemplateResult)));
+      }
+    } else {
+      template = (result as CompiledTemplateResult)._$litType$;
     }
     if (
       this._value != null &&

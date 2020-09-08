@@ -22,7 +22,7 @@ import {
   render,
   svg,
   TemplateResult,
-  RenderOptions,
+  RenderOptions, CompiledTemplateResult, LitTemplate
 } from '../lit-html.js';
 import {assert} from '@esm-bundle/chai';
 import {
@@ -41,13 +41,28 @@ suite('lit-html', () => {
   });
 
   const assertRender = (
-    r: TemplateResult,
+    r: TemplateResult|CompiledTemplateResult,
     expected: string,
     options?: RenderOptions
   ) => {
     render(r, container, options);
     assert.equal(stripExpressionComments(container.innerHTML), expected);
   };
+
+  suite('compiled', () => {
+    test.only('only text', () => {
+      const _$lit_template_1$: LitTemplate = {
+        _strings: ['', ''] as any as TemplateStringsArray,
+        _element: document.createElement('template'),
+        _parts: [{_type: 2, _index: 0}],
+      };
+      _$lit_template_1$._element.innerHTML = '<!---->';
+      assertRender({
+        _$litType$: _$lit_template_1$,
+        values: ['A']
+      }, 'A');
+    });
+  });
 
   /**
    * These test the ability to insert the correct expression marker into the
