@@ -16,8 +16,14 @@
     "benchmark:lit-html:kitchen-sink-render": "tach --config lit-html/kitchen-sink/tachometer-render.json",
     "benchmark:lit-html:kitchen-sink-update": "tach --config lit-html/kitchen-sink/tachometer-update.json",
     "benchmark:lit-html:kitchen-sink-nop-update": "tach --config lit-html/kitchen-sink/tachometer-nop-update.json",
-    "benchmark:lit-element:stub1": "tach --config lit-element/stub1/tachometer.json",
-    "benchmark:lit-element:list": "tach --config lit-element/list/tachometer.json"
+    "benchmark:lit-element:list": "tach --config lit-element/list/tachometer.json",
+    "benchmark:lit-element:list-render": "tach --config lit-element/list/tachometer-render.json",
+    "benchmark:lit-element:list-update": "tach --config lit-element/list/tachometer-update.json",
+    "benchmark:lit-element:list-update-reflect": "tach --config lit-element/list/tachometer-update-reflect.json",
+    "benchmark:updating-element": "tach --config lit-element/updating-element/tachometer.json",
+    "benchmark:updating-element-render": "tach --config lit-element/updating-element/tachometer-render.json",
+    "benchmark:updating-element-update": "tach --config lit-element/updating-element/tachometer-update.json",
+    "benchmark:updating-element-update-reflect": "tach --config lit-element/updating-element/tachometer-update-reflect.json"
   },
   "dependencies": {
     "lit-element": "^3.0.0-pre.0",
