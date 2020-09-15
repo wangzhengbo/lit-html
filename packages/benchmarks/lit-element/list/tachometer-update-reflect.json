@@ -4,7 +4,7 @@
   "timeout": 0,
   "benchmarks": [
     {
-      "url": "lit-element/list/index.html",
+      "url": "lit-element/list/index.html?benchmark=update-reflect",
       "browser": {
         "name": "chrome",
         "headless": true
@@ -12,15 +12,7 @@
       "measurement": [
         {
           "mode": "performance",
-          "entryName": "render"
-        },
-        {
-          "mode": "performance",
-          "entryName": "update"
-        },
-        {
-          "mode": "performance",
-          "entryName": "update-no-reflect"
+          "entryName": "update-reflect"
         }
       ],
       "expand": [

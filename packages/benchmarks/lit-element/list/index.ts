@@ -1,12 +1,26 @@
-import { html, LitElement, css, PropertyDeclaration } from "lit-element";
-import { property } from "lit-element/lib/decorators.js";
-import { customElement } from "lit-element/lib/decorators.js";
+import {
+  html,
+  LitElement,
+  css,
+  PropertyDeclaration,
+  PropertyValues,
+  UpdatingElement,
+} from 'lit-element';
+import {property} from 'lit-element/lib/decorators.js';
+import {customElement} from 'lit-element/lib/decorators.js';
+
+// IE doesn't support URLSearchParams
+const params = document.location.search
+  .slice(1)
+  .split('&')
+  .map((p) => p.split('='))
+  .reduce((p: {[key: string]: any}, [k, v]) => ((p[k] = v || true), p), {});
 
 type SimpleItem = {[index: string]: string};
 
 function makeItem(prefix: number) {
   let o: SimpleItem = {};
-  for (let i=0; i < 99; i++) {
+  for (let i = 0; i < 99; i++) {
     o['value' + i] = prefix + ': ' + i;
   }
   return o;
@@ -14,7 +28,7 @@ function makeItem(prefix: number) {
 
 function generateData(count: number) {
   let data = [];
-  for (let i=0; i<count; i++) {
+  for (let i = 0; i < count; i++) {
     data.push(makeItem(i));
   }
   return data;
@@ -23,7 +37,7 @@ function generateData(count: number) {
 const data = generateData(250);
 const otherData = generateData(500).slice(250);
 
-const propertyOptions = {reflect: true};
+const propertyOptions: PropertyDeclaration = {};
 
 let updates: Promise<unknown>[] = [];
 const updateComplete = async () => {
@@ -34,11 +48,25 @@ const updateComplete = async () => {
   if (updates.length) {
     await updateComplete();
   } else {
-    //await new Promise(r => setTimeout(r, 1000));
+    // await new Promise(r => setTimeout(r, 1000));
   }
 };
 
+// Make compatible with previous version
+if (Boolean((UpdatingElement.prototype as any).requestUpdateInternal)) {
+  UpdatingElement.prototype.requestUpdate = (UpdatingElement.prototype as any).requestUpdateInternal;
+}
+
 class MonitorUpdate extends LitElement {
+  // Make compatible with previous version
+  requestUpdateInternal(
+    name?: PropertyKey,
+    oldValue?: unknown,
+    options?: PropertyDeclaration
+  ) {
+    this.requestUpdate(name, oldValue, options);
+  }
+
   requestUpdate(
     name?: PropertyKey,
     oldValue?: unknown,
@@ -46,15 +74,21 @@ class MonitorUpdate extends LitElement {
   ) {
     const pending = (this as any)._hasRequestedUpdate;
     super.requestUpdate(name, oldValue, options);
-    if (!pending) {
+    if (!pending && this.hasUpdated) {
       updates.push(this.updateComplete);
     }
+  }
+
+  update(changedProperties: PropertyValues) {
+    if (!this.hasUpdated) {
+      updates.push(this.updateComplete);
+    }
+    super.update(changedProperties);
   }
 }
 
 @customElement('x-thing')
 export class XThing extends MonitorUpdate {
-
   static styles = css`
     .container {
       box-sizing: border-box;
@@ -100,13 +134,10 @@ export class XThing extends MonitorUpdate {
       </div>
     `;
   }
-
-
 }
 
 @customElement('x-item')
 export class XItem extends MonitorUpdate {
-
   static styles = css`
     .item {
       display: flex;
@@ -118,17 +149,44 @@ export class XItem extends MonitorUpdate {
 
   protected render() {
     return html`
-      <div class="item">
-        <x-thing .from="${this.item.value0}"  .time="${this.item.value1}"  .subject="${this.item.value2}"></x-thing>
-        <x-thing .from="${this.item.value3}"  .time="${this.item.value4}"  .subject="${this.item.value5}"></x-thing>
-        <x-thing .from="${this.item.value6}"  .time="${this.item.value7}"  .subject="${this.item.value8}"></x-thing>
-        <x-thing .from="${this.item.value9}" .time="${this.item.value10}" .subject="${this.item.value11}"></x-thing>
-        <x-thing .from="${this.item.value12}" .time="${this.item.value13}" .subject="${this.item.value14}"></x-thing>
-        <x-thing .from="${this.item.value15}" .time="${this.item.value16}" .subject="${this.item.value17}"></x-thing>
+      <div @click="${this.onClick}" class="item">
+        <x-thing
+          .from="${this.item.value0}"
+          .time="${this.item.value1}"
+          .subject="${this.item.value2}"
+        ></x-thing>
+        <x-thing
+          .from="${this.item.value3}"
+          .time="${this.item.value4}"
+          .subject="${this.item.value5}"
+        ></x-thing>
+        <x-thing
+          .from="${this.item.value6}"
+          .time="${this.item.value7}"
+          .subject="${this.item.value8}"
+        ></x-thing>
+        <x-thing
+          .from="${this.item.value9}"
+          .time="${this.item.value10}"
+          .subject="${this.item.value11}"
+        ></x-thing>
+        <x-thing
+          .from="${this.item.value12}"
+          .time="${this.item.value13}"
+          .subject="${this.item.value14}"
+        ></x-thing>
+        <x-thing
+          .from="${this.item.value15}"
+          .time="${this.item.value16}"
+          .subject="${this.item.value17}"
+        ></x-thing>
       </div>
     `;
   }
 
+  onClick(e: MouseEvent) {
+    console.log(e.type);
+  }
 }
 
 @customElement('x-app')
@@ -137,73 +195,68 @@ export class XApp extends MonitorUpdate {
   items = data;
 
   protected render() {
-    return html`${this.items.map(item => html`<x-item .item="${item}"></x-item>`)}`;
+    return html`${this.items.map(
+      (item) => html`<x-item .item="${item}"></x-item>`
+    )}`;
   }
-
 }
 
 (async () => {
-
   const container = document.createElement('div');
   document.body.appendChild(container);
   let el: XApp;
 
   const create = () => {
-    const el = document.createElement("x-app") as XApp;
+    const el = document.createElement('x-app') as XApp;
     return container.appendChild(el) as XApp;
-  }
+  };
 
   const destroy = () => {
     container.innerHTML = '';
-  }
+  };
+
+  const benchmark = params.benchmark;
 
   // Initial Render
   let test = 'render';
-  performance.mark(test);
-  create();
-  await updateComplete();
-  performance.measure(test, test);
-  destroy();
+  if (benchmark === test || !benchmark) {
+    performance.mark(test);
+    create();
+    await updateComplete();
+    performance.measure(test, test);
+    destroy();
+  }
 
   // Update: toggle data
   const updateCount = 6;
   test = 'update';
-  el = create();
-  performance.mark(test);
-  for (let i = 0; i < updateCount; i++) {
-    el.items = i % 2 ? otherData : data;
-    await updateComplete();
+  if (benchmark === test || !benchmark) {
+    el = create();
+    performance.mark(test);
+    for (let i = 0; i < updateCount; i++) {
+      el.items = i % 2 ? otherData : data;
+      await updateComplete();
+    }
+    performance.measure(test, test);
+    destroy();
   }
-  performance.measure(test, test);
-  destroy();
 
-  // Update: clear then fill with items
-  test = 'update-clear';
-  el = create();
-  performance.mark(test);
-  for (let i = 0; i < updateCount; i++) {
-    el.items = i % 2 ? [] : data;
-    await updateComplete();
+  test = 'update-reflect';
+  if (benchmark === test || !benchmark) {
+    el = create();
+    performance.mark(test);
+    (propertyOptions as any).reflect = true;
+    for (let i = 0; i < updateCount; i++) {
+      el.items = i % 2 ? otherData : data;
+      await updateComplete();
+    }
+    (propertyOptions as any).reflect = false;
+    performance.measure(test, test);
+    destroy();
   }
-  performance.measure(test, test);
-  destroy();
-
-  test = 'update-no-reflect';
-  el = create();
-  performance.mark(test);
-  propertyOptions.reflect = false;
-  for (let i = 0; i < updateCount; i++) {
-    el.items = i % 2 ? otherData : data;
-    await updateComplete();
-  }
-  propertyOptions.reflect = true;
-  performance.measure(test, test);
-  destroy();
 
   // Log
   performance
     .getEntriesByType('measure')
     .forEach((m) => console.log(`${m.name}: ${m.duration.toFixed(3)}ms`));
-
 })();
-

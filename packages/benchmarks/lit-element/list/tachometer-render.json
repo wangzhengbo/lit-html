@@ -4,7 +4,7 @@
   "timeout": 0,
   "benchmarks": [
     {
-      "url": "lit-element/list/index.html",
+      "url": "lit-element/list/index.html?benchmark=render",
       "browser": {
         "name": "chrome",
         "headless": true
@@ -13,14 +13,6 @@
         {
           "mode": "performance",
           "entryName": "render"
-        },
-        {
-          "mode": "performance",
-          "entryName": "update"
-        },
-        {
-          "mode": "performance",
-          "entryName": "update-no-reflect"
         }
       ],
       "expand": [
