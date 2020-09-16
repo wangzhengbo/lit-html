@@ -2,7 +2,10 @@ import {
   UpdatingElement,
   PropertyDeclaration,
   PropertyValues,
-} from 'lit-element';
+} from 'lit-element/lib/updating-element.js';
+// TODO(sorvell): Investigate why this makes the benchmark run way slower
+// on the previous release.
+// export {html} from 'lit-html';
 import {property} from 'lit-element/lib/decorators.js';
 import {customElement} from 'lit-element/lib/decorators.js';
 
